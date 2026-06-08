@@ -1,0 +1,6 @@
+{
+  "name": "pick",
+  "description": "A simple, distraction-free utility tool to help you make decisions when you can't choose between options.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
