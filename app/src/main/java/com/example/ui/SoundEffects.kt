@@ -86,6 +86,120 @@ object SoundEffects {
         }
     }
 
+    fun playPop() {
+        try {
+            // Generate a bouncy organic bubble pop sound: 50ms duration
+            val durationMs = 50
+            val numSamples = (SAMPLE_RATE * durationMs / 1000)
+            val buffer = ShortArray(numSamples)
+            
+            for (i in 0 until numSamples) {
+                val t = i.toDouble() / SAMPLE_RATE
+                // Crisp fast bubble decay envelope
+                val envelope = Math.exp(-t * 90.0)
+                // Pitch sweeps up from 300Hz to 800Hz for that bounce element
+                val freq = 300.0 + (500.0 * (t / (durationMs / 1000.0)))
+                val angle = 2.0 * Math.PI * freq * t
+                val sample = (sin(angle) * Short.MAX_VALUE * 0.3 * envelope).toInt()
+                buffer[i] = sample.coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
+            }
+            playAudio(buffer)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun playRemove() {
+        try {
+            // A quick descending negative-action clean sound: 120ms duration
+            val durationMs = 120
+            val numSamples = (SAMPLE_RATE * durationMs / 1000)
+            val buffer = ShortArray(numSamples)
+            
+            for (i in 0 until numSamples) {
+                val t = i.toDouble() / SAMPLE_RATE
+                val envelope = Math.exp(-t * 25.0)
+                // Descending frequency sweep
+                val freq = 800.0 - (500.0 * (t / (durationMs / 1000.0)))
+                val angle = 2.0 * Math.PI * freq * t
+                val sample = (sin(angle) * Short.MAX_VALUE * 0.25 * envelope).toInt()
+                buffer[i] = sample.coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
+            }
+            playAudio(buffer)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun playClick() {
+        try {
+            // A short, tight woodblock click or key-switch tap: 15ms duration
+            val durationMs = 15
+            val numSamples = (SAMPLE_RATE * durationMs / 1000)
+            val buffer = ShortArray(numSamples)
+            
+            for (i in 0 until numSamples) {
+                val t = i.toDouble() / SAMPLE_RATE
+                // Extremely rapid snappy decay
+                val envelope = Math.exp(-t * 300.0)
+                val freq = 650.0
+                val angle = 2.0 * Math.PI * freq * t
+                val sample = (sin(angle) * Short.MAX_VALUE * 0.35 * envelope).toInt()
+                buffer[i] = sample.coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
+            }
+            playAudio(buffer)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun playSave() {
+        try {
+            // A bright and premium double-tone ascending bell sound: 250ms duration
+            val durationMs = 250
+            val numSamples = (SAMPLE_RATE * durationMs / 1000)
+            val buffer = ShortArray(numSamples)
+            
+            for (i in 0 until numSamples) {
+                val t = i.toDouble() / SAMPLE_RATE
+                val sampleValue = if (t < 0.1) {
+                    val envelope = Math.exp(-t * 30.0)
+                    sin(2.0 * Math.PI * 659.25 * t) * envelope * 0.25
+                } else {
+                    val t2 = t - 0.1
+                    val envelope = Math.exp(-t2 * 15.0)
+                    sin(2.0 * Math.PI * 880.0 * t2) * envelope * 0.25
+                }
+                val sample = (sampleValue * Short.MAX_VALUE).toInt()
+                buffer[i] = sample.coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
+            }
+            playAudio(buffer)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun playClear() {
+        try {
+            // A low sweep representing erasing or swiping clean: 150ms duration
+            val durationMs = 150
+            val numSamples = (SAMPLE_RATE * durationMs / 1000)
+            val buffer = ShortArray(numSamples)
+            
+            for (i in 0 until numSamples) {
+                val t = i.toDouble() / SAMPLE_RATE
+                val envelope = Math.exp(-t * 18.0)
+                val freq = 450.0 - (300.0 * (t / (durationMs / 1000.0)))
+                val angle = 2.0 * Math.PI * freq * t
+                val sample = (sin(angle) * Short.MAX_VALUE * 0.25 * envelope).toInt()
+                buffer[i] = sample.coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
+            }
+            playAudio(buffer)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     private fun playAudio(buffer: ShortArray) {
         Thread {
             try {

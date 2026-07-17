@@ -18,11 +18,17 @@ interface PickDao {
     @Query("SELECT * FROM picks WHERE id = :id")
     suspend fun getPickByIdSuspended(id: Long): Pick?
 
+    @Query("SELECT * FROM picks ORDER BY createdAt DESC LIMIT 1")
+    suspend fun getLatestPickSuspended(): Pick?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPick(pick: Pick): Long
 
     @Query("DELETE FROM picks WHERE id = :id")
     suspend fun deletePickById(id: Long)
+
+    @Query("UPDATE picks SET isFavourite = :isFavourite WHERE id = :id")
+    suspend fun updateFavouriteStatus(id: Long, isFavourite: Boolean)
 
     @Query("SELECT * FROM pick_history WHERE pickId = :pickId ORDER BY timestamp DESC")
     fun getHistoryForPick(pickId: Long): Flow<List<PickHistoryEntry>>

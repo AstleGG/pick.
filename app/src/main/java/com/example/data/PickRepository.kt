@@ -21,6 +21,10 @@ class PickRepository(private val pickDao: PickDao) {
         pickDao.deletePickWithHistory(id)
     }
 
+    suspend fun toggleFavourite(id: Long, isFavourite: Boolean) {
+        pickDao.updateFavouriteStatus(id, isFavourite)
+    }
+
     fun getHistoryForPick(pickId: Long): Flow<List<PickHistoryEntry>> {
         return pickDao.getHistoryForPick(pickId)
     }

@@ -9,7 +9,8 @@ data class Pick(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val title: String,
     val options: List<String>,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val isFavourite: Boolean = false
 )
 
 @Entity(tableName = "pick_history")

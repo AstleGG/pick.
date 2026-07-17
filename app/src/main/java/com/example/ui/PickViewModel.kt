@@ -21,14 +21,64 @@ sealed interface Screen {
     object Home : Screen
     object CreatePick : Screen
     data class PickDetail(val pickId: Long) : Screen
+    object Settings : Screen
+}
+
+enum class PickMode {
+    QUICK_PICK, SPIN_WHEEL
 }
 
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-class PickViewModel(val repository: PickRepository) : ViewModel() {
+class PickViewModel(val repository: PickRepository, val application: android.app.Application) : ViewModel() {
+
+    private val sharedPrefs = application.getSharedPreferences("pick_settings", android.content.Context.MODE_PRIVATE)
+
+    var isHapticEnabled by mutableStateOf(sharedPrefs.getBoolean("haptic_enabled", true))
+        private set
+
+    var themeMode by mutableStateOf(sharedPrefs.getString("theme_mode", "system") ?: "system")
+        private set
+
+    fun updateHapticEnabled(enabled: Boolean) {
+        isHapticEnabled = enabled
+        sharedPrefs.edit().putBoolean("haptic_enabled", enabled).apply()
+        SoundEffects.playPop()
+    }
+
+    fun updateThemeMode(mode: String) {
+        themeMode = mode
+        sharedPrefs.edit().putString("theme_mode", mode).apply()
+        SoundEffects.playPop()
+    }
+
+    fun clearAllPicksAndHistory() {
+        viewModelScope.launch {
+            allPicks.value.forEach { pick ->
+                repository.deletePick(pick.id)
+            }
+            SoundEffects.playRemove()
+        }
+    }
 
     // Current screen navigation state
     var currentScreen by mutableStateOf<Screen>(Screen.Home)
         private set
+
+    // Current active decision mode
+    var activeMode by mutableStateOf(PickMode.QUICK_PICK)
+        private set
+
+    fun setPickMode(mode: PickMode) {
+        activeMode = mode
+        resetPickResult(silent = true)
+    }
+
+    var createMode by mutableStateOf(PickMode.QUICK_PICK)
+        private set
+
+    fun updateCreateMode(mode: PickMode) {
+        createMode = mode
+    }
 
     // All available picks
     val allPicks: StateFlow<List<Pick>> = repository.allPicks
@@ -105,6 +155,7 @@ class PickViewModel(val repository: PickRepository) : ViewModel() {
 
     fun addCreateOptionField() {
         createOptions = createOptions + ""
+        SoundEffects.playPop()
     }
 
     fun removeCreateOptionField(index: Int) {
@@ -112,12 +163,14 @@ class PickViewModel(val repository: PickRepository) : ViewModel() {
             val newList = createOptions.toMutableList()
             newList.removeAt(index)
             createOptions = newList
+            SoundEffects.playRemove()
         }
     }
 
     fun clearCreateForm() {
         createTitle = ""
         createOptions = listOf("", "")
+        createMode = PickMode.QUICK_PICK
     }
 
     // Navigation triggers
@@ -128,6 +181,7 @@ class PickViewModel(val repository: PickRepository) : ViewModel() {
         } else {
             activePickId = null
         }
+        SoundEffects.playClick()
     }
 
     // Actions
@@ -141,7 +195,10 @@ class PickViewModel(val repository: PickRepository) : ViewModel() {
                 options = validOptions
             )
             val insertedId = repository.savePick(newPick)
+            val selectedInitialMode = createMode
             clearCreateForm()
+            activeMode = selectedInitialMode
+            SoundEffects.playSave()
             navigateTo(Screen.PickDetail(insertedId))
         }
     }
@@ -149,9 +206,17 @@ class PickViewModel(val repository: PickRepository) : ViewModel() {
     fun deletePick(pickId: Long) {
         viewModelScope.launch {
             repository.deletePick(pickId)
+            SoundEffects.playRemove()
             if (activePickId == pickId) {
                 navigateTo(Screen.Home)
             }
+        }
+    }
+
+    fun toggleFavourite(pickId: Long, isFavourite: Boolean) {
+        viewModelScope.launch {
+            repository.toggleFavourite(pickId, isFavourite)
+            SoundEffects.playPop()
         }
     }
 
@@ -204,22 +269,43 @@ class PickViewModel(val repository: PickRepository) : ViewModel() {
         }
     }
 
-    fun resetPickResult() {
+    fun startSpinning() {
+        isPickingAnimationRunning = true
+        SoundEffects.playStart()
+    }
+
+    fun recordSpinResult(pick: Pick, winner: String) {
+        viewModelScope.launch {
+            selectedPickResult = winner
+            isPickingAnimationRunning = false
+            SoundEffects.playSuccess()
+            repository.recordSelection(pick.id, winner)
+        }
+    }
+
+    fun resetPickResult(silent: Boolean = false) {
         selectedPickResult = null
+        if (!silent) {
+            SoundEffects.playClear()
+        }
     }
 
     fun clearHistoryForPick(pickId: Long) {
         viewModelScope.launch {
             repository.clearHistory(pickId)
+            SoundEffects.playClear()
         }
     }
 }
 
-class PickViewModelFactory(private val repository: PickRepository) : ViewModelProvider.Factory {
+class PickViewModelFactory(
+    private val repository: PickRepository,
+    private val application: android.app.Application
+) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(PickViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return PickViewModel(repository) as T
+            return PickViewModel(repository, application) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
